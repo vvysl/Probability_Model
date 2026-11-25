@@ -1,0 +1,54 @@
+symbol: ES
+timeframe: 1m
+data_path: data/ES_1m.csv
+horizons:
+- 3
+- 10
+- 30
+target_id: ternary_displacement
+target:
+  atr_period: 14
+  flat_tau: 0.15
+state_ids:
+- ret_atr_1
+- ret_atr_3
+- ret_atr_5
+- ret_atr_15
+- ret_atr_30
+- ret_atr_60
+- atr_14
+- atr_60
+- atr_240
+- atr_ratio_14_60
+- atr_ratio_60_240
+- rv_14
+- rv_60
+- body_atr
+- upper_wick_atr
+- lower_wick_atr
+- range_atr
+- close_pos
+- dir_consist_15
+- dist_ema_10
+- dist_ema_30
+- dist_ema_60
+- ema_slope_10
+- ema_slope_60
+- eff_30
+- rvol_5
+- rvol_30
+- vol_z_60
+- vol_chg
+- vol_x_ret
+holdout_frac: 0.2
+purge: 30
+model:
+  backend: hgb
+  class_weight: balanced
+  max_depth: 6
+  learning_rate: 0.05
+  max_iter: 200
+  l2_regularization: 1.0
+  min_samples_leaf: 40
+  random_state: 0
+artifacts_dir: artifacts/run

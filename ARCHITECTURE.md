@@ -85,9 +85,11 @@ label; they may become later layers.
 
 ### Predictor
 
-- `fit(X, y)` / `predict_proba(X)`
-- Probability shape must match the active `TargetSpec`
-- Concrete backend (HGB, LightGBM, …) deferred
+- `fit(X, y)` / `predict_proba(X)` → ternary proba `(n, 3)` = `[down, flat, up]`
+- **One model per horizon** (`y_h3`, `y_h10`, `y_h30`)
+- **v1 backend:** `HistGradientBoostingClassifier` (`pm.model.hgb`), `class_weight=balanced`
+- **Later:** LightGBM on a server (optional extra; needs libomp on macOS)
+- Train: time holdout + `purge=max(h)` (`pm.train`); metrics log-loss / Brier / accuracy
 
 ### Eval
 
@@ -99,6 +101,7 @@ label; they may become later layers.
 1. **Structure** — layers + empty registries ✅
 2. **Horizons** — ternary displacement 3/10/30 ✅
 3. **Market constants** — v1 state catalog (~30) ✅
+4. **Train** — HGB per horizon ✅; LGBM on server later
 
 ## Explicitly out of scope (for now)
 

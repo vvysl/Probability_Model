@@ -53,3 +53,21 @@ state_ids:
   - vol_x_ret
 
 holdout_frac: 0.2
+# Drop train rows within this many bars of the holdout edge (label overlap).
+purge: 30
+
+# v1 backend = HistGradientBoosting; lgbm deferred to server.
+model:
+  backend: hgb
+  class_weight: balanced
+  max_depth: 6
+  learning_rate: 0.05
+  max_iter: 200
+  l2_regularization: 1.0
+  min_samples_leaf: 40
+  random_state: 0
+
+artifacts_dir: artifacts/run
+
+# Local Databento/Quanqora export (gitignored). Example:
+# data_path: data/ES_1m.csv
