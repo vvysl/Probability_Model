@@ -1,0 +1,42 @@
+# Local data — never commit market caches / paid feeds
+data/**
+!data/.gitkeep
+*.csv
+*.parquet
+*.feather
+*.h5
+*.dbn
+*.dbn.zst
+
+# Secrets / env
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+credentials*
+*databento*
+*secret*
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+
+# Artifacts / outputs
+artifacts/**
+!artifacts/.gitkeep
+runs/**
+!runs/.gitkeep
+
+# OS / IDE
+.DS_Store
+.idea/
+.vscode/
+*.swp
