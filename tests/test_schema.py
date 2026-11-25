@@ -10,6 +10,7 @@ import pytest
 from pm.bars import REQUIRED_COLUMNS, load_ohlcv, make_synthetic_ohlcv, normalize_ohlcv
 from pm.eval.splits import time_holdout_cut
 from pm.pipeline import describe_readiness, load_config, run_scaffold
+from pm.state.catalog import V1_STATE_IDS
 from pm.state.registry import build_state_matrix, list_state_ids
 from pm.targets.registry import list_target_ids
 
@@ -42,8 +43,9 @@ def test_load_ohlcv_roundtrip(tmp_path: Path):
     )
 
 
-def test_state_registry_still_empty():
-    assert list_state_ids() == []
+def test_core_registries_populated():
+    assert set(V1_STATE_IDS).issubset(set(list_state_ids()))
+    assert len(V1_STATE_IDS) == 30
     assert "ternary_displacement" in list_target_ids()
 
 
@@ -60,29 +62,29 @@ def test_time_holdout_cut():
         time_holdout_cut(100, 0.0)
 
 
-def test_default_config_horizons_without_state():
+def test_default_config_ready_for_train():
     root = Path(__file__).resolve().parents[1]
     cfg = load_config(root / "configs" / "default.yaml")
     status = describe_readiness(cfg)
     assert status["horizons"] == [3, 10, 30]
     assert status["target_id"] == "ternary_displacement"
-    assert status["state_ids"] == []
-    assert status["ready_for_train"] is False
+    assert status["state_ids"] == list(V1_STATE_IDS)
+    assert status["ready_for_train"] is True
     assert cfg["timeframe"] == "1m"
     assert cfg["symbol"] == "ES"
 
 
-def test_run_scaffold_with_target_no_state():
+def test_run_scaffold_with_v1_state():
     cfg = {
         "horizons": [3, 10, 30],
-        "state_ids": [],
+        "state_ids": list(V1_STATE_IDS),
         "target_id": "ternary_displacement",
         "holdout_frac": 0.2,
     }
-    bars = make_synthetic_ohlcv(n=80, seed=9)
+    bars = make_synthetic_ohlcv(n=400, seed=9)
     out = run_scaffold(cfg, bars=bars)
-    assert out["status"]["ready_for_train"] is False
-    assert out["holdout_cut"] == 64
-    assert out["X"] is not None and out["X"].empty
+    assert out["status"]["ready_for_train"] is True
+    assert out["holdout_cut"] == 320
+    assert list(out["X"].columns) == list(V1_STATE_IDS)
     assert out["y"] is not None
     assert list(out["y"].columns) == ["y_h3", "y_h10", "y_h30"]

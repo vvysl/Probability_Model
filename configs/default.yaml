@@ -5,7 +5,7 @@ symbol: ES
 timeframe: "1m"
 data_path: null
 
-# Horizons in 1m bars (step 2)
+# Horizons in 1m bars
 horizons: [3, 10, 30]
 
 # Ternary displacement: sign of (close_{t+h}-close_t)/ATR_t vs flat_tau
@@ -14,7 +14,42 @@ target:
   atr_period: 14
   flat_tau: 0.15
 
-# Step 3: continuous state variable ids from pm.state.registry
-state_ids: []
+# v1 state catalog (~30): A returns, B vol, C candle, D trend, E relative volume
+state_ids:
+  # A — price movement / ATR14
+  - ret_atr_1
+  - ret_atr_3
+  - ret_atr_5
+  - ret_atr_15
+  - ret_atr_30
+  - ret_atr_60
+  # B — volatility
+  - atr_14
+  - atr_60
+  - atr_240
+  - atr_ratio_14_60
+  - atr_ratio_60_240
+  - rv_14
+  - rv_60
+  # C — candle structure
+  - body_atr
+  - upper_wick_atr
+  - lower_wick_atr
+  - range_atr
+  - close_pos
+  - dir_consist_15
+  # D — trend
+  - dist_ema_10
+  - dist_ema_30
+  - dist_ema_60
+  - ema_slope_10   # lag=5
+  - ema_slope_60   # lag=15
+  - eff_30
+  # E — volume (relative only)
+  - rvol_5
+  - rvol_30
+  - vol_z_60
+  - vol_chg
+  - vol_x_ret
 
 holdout_frac: 0.2

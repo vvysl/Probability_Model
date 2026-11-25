@@ -1,10 +1,36 @@
-"""State variable registry — empty until step 3 (market constants)."""
+"""State variable registry — v1 catalog blocks A–E."""
 
 from __future__ import annotations
 
 from pm.state.base import StateVar
+from pm.state.candle import default_candle_vars
+from pm.state.catalog import V1_STATE_IDS
+from pm.state.returns import default_return_vars
+from pm.state.trend import default_trend_vars
+from pm.state.volatility import default_volatility_vars
+from pm.state.volume_feats import default_volume_vars
 
 STATE_REGISTRY: dict[str, StateVar] = {}
+
+
+def _register_defaults() -> None:
+    for factory in (
+        default_return_vars,
+        default_volatility_vars,
+        default_candle_vars,
+        default_trend_vars,
+        default_volume_vars,
+    ):
+        for var in factory():
+            if var.id in STATE_REGISTRY:
+                raise ValueError(f"duplicate state id {var.id!r}")
+            STATE_REGISTRY[var.id] = var
+    missing = [sid for sid in V1_STATE_IDS if sid not in STATE_REGISTRY]
+    if missing:
+        raise RuntimeError(f"v1 catalog ids not registered: {missing}")
+
+
+_register_defaults()
 
 
 def list_state_ids() -> list[str]:
@@ -14,14 +40,13 @@ def list_state_ids() -> list[str]:
 def get_state_var(state_id: str) -> StateVar:
     if state_id not in STATE_REGISTRY:
         raise KeyError(
-            f"unknown state id {state_id!r}; registry empty until step 3 "
-            f"(known={list_state_ids()})"
+            f"unknown state id {state_id!r} (known={list_state_ids()})"
         )
     return STATE_REGISTRY[state_id]
 
 
 def build_state_matrix(bars, state_ids: list[str]):
-    """Concatenate registered state vars; step 3 will populate registry."""
+    """Concatenate registered state vars into one frame."""
     import pandas as pd
 
     if not state_ids:

@@ -34,7 +34,7 @@ def describe_readiness(cfg: dict[str, Any]) -> dict[str, Any]:
         "registered_states": list_state_ids(),
         "registered_targets": list_target_ids(),
         "ready_for_train": bool(horizons) and bool(state_ids) and bool(target_id),
-        "note": "Targets/horizons ready; market constants = step 3.",
+        "note": "v1 state catalog (~30) + ternary targets ready.",
     }
 
 

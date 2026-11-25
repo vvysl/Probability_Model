@@ -17,7 +17,7 @@ state variables (“market constants”), not discrete indicator events.
 ```
 data/ (local, gitignored)
   → bars          normalize OHLCV
-  → state         continuous x_t  (registry filled in step 3)
+  → state         continuous x_t  (v1 catalog ~30 features)
   → targets       y_{t,h}         (horizons filled in step 2)
   → model         Predictor       (fit / predict_proba)
   → eval          time-ordered splits (+ purge/embargo later)
@@ -47,7 +47,17 @@ asset-agnostic. Local files under `data/` only — never commit paid caches.
 - Stable string `id`
 - `compute(bars) -> Series | DataFrame` aligned to bars index
 - Uses only information available at or before each \(t\) (incl. warmup NaNs)
-- Catalog still empty until **step 3**
+- **v1 catalog** (`pm.state.catalog.V1_STATE_IDS`, 30 ids) — continuous only:
+
+| Block | Ids | Notes |
+|-------|-----|-------|
+| A returns | `ret_atr_{1,3,5,15,30,60}` | \(r_{\mathrm{lag}}/\mathrm{ATR}_{14}\) |
+| B vol | `atr_14/60/240`, `atr_ratio_14_60`, `atr_ratio_60_240`, `rv_14/60` | Regime + expansion |
+| C candle | `body_atr`, `upper_wick_atr`, `lower_wick_atr`, `range_atr`, `close_pos`, `dir_consist_15` | Structure in ATR; `close_pos=0.5` if range 0 |
+| D trend | `dist_ema_{10,30,60}`, `ema_slope_10` (lag 5), `ema_slope_60` (lag 15), `eff_30` | Slopes /ATR14; efficiency ∈ [0,1] |
+| E volume | `rvol_5/30`, `vol_z_60`, `vol_chg`, `vol_x_ret` | Relative only — no raw volume |
+
+ATR denominators default to ATR(14) unless the feature *is* a vol scale/ratio.
 
 ### TargetSpec
 
@@ -88,7 +98,7 @@ label; they may become later layers.
 
 1. **Structure** — layers + empty registries ✅
 2. **Horizons** — ternary displacement 3/10/30 ✅
-3. **Market constants** — fill `state` registry / config
+3. **Market constants** — v1 state catalog (~30) ✅
 
 ## Explicitly out of scope (for now)
 

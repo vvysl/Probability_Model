@@ -29,7 +29,7 @@ See [ARCHITECTURE.md](ARCHITECTURE.md).
 | Package | Role |
 |---------|------|
 | `pm.bars` | OHLCV load / schema |
-| `pm.state` | Continuous \(\mathbf{x}_t\) (registry empty until step 3) |
+| `pm.state` | Continuous \(\mathbf{x}_t\) — v1 catalog (~30, A–E) |
 | `pm.targets` | Ternary displacement on 3/10/30 (1m bars) |
 | `pm.model` | `Predictor` protocol |
 | `pm.eval` | Time-ordered splits |
@@ -43,7 +43,7 @@ units, not path length.
 
 1. **Structure** — layers + contracts ✅
 2. **Horizons** — ternary \(y_{t,h}\) on 3/10/30 ✅
-3. **Market constants** — catalog continuous state variables
+3. **Market constants** — v1 state catalog ✅
 
 ## Setup
 
@@ -62,5 +62,5 @@ caches or API keys.
 
 ## Status
 
-Step 2 done: horizons + ternary displacement target. Next: market constants
-(state registry).
+v1 state (~30 continuous features) + ternary targets ready. Next: training /
+time-safe eval on ES 1m (local data).
