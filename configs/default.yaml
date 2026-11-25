@@ -1,0 +1,17 @@
+# Probability_Model default config — step 1 scaffold.
+# Horizons filled in step 2; state_ids (market constants) in step 3.
+
+symbol: null
+timeframe: null
+data_path: null
+
+# Step 2: e.g. [5, 15, 60] in bars
+horizons: []
+
+# Step 2: registry id once TargetSpec exists
+target_id: null
+
+# Step 3: continuous state variable ids from pm.state.registry
+state_ids: []
+
+holdout_frac: 0.2
