@@ -1,15 +1,18 @@
-# Probability_Model default config — step 1 scaffold.
-# Horizons filled in step 2; state_ids (market constants) in step 3.
+# Probability_Model default config
+# Bars are always 1m. Symbol is a run parameter (research default: ES).
 
-symbol: null
-timeframe: null
+symbol: ES
+timeframe: "1m"
 data_path: null
 
-# Step 2: e.g. [5, 15, 60] in bars
-horizons: []
+# Horizons in 1m bars (step 2)
+horizons: [3, 10, 30]
 
-# Step 2: registry id once TargetSpec exists
-target_id: null
+# Ternary displacement: sign of (close_{t+h}-close_t)/ATR_t vs flat_tau
+target_id: ternary_displacement
+target:
+  atr_period: 14
+  flat_tau: 0.15
 
 # Step 3: continuous state variable ids from pm.state.registry
 state_ids: []

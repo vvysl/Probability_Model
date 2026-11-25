@@ -23,7 +23,7 @@ def load_config(path: Path | str) -> dict[str, Any]:
 
 
 def describe_readiness(cfg: dict[str, Any]) -> dict[str, Any]:
-    """Report what is configured vs still empty (step 1 scaffold)."""
+    """Report what is configured vs still empty (state catalog = step 3)."""
     horizons = cfg.get("horizons") or []
     state_ids = cfg.get("state_ids") or []
     target_id = cfg.get("target_id")
@@ -34,7 +34,7 @@ def describe_readiness(cfg: dict[str, Any]) -> dict[str, Any]:
         "registered_states": list_state_ids(),
         "registered_targets": list_target_ids(),
         "ready_for_train": bool(horizons) and bool(state_ids) and bool(target_id),
-        "note": "Horizons = step 2; market constants = step 3.",
+        "note": "Targets/horizons ready; market constants = step 3.",
     }
 
 

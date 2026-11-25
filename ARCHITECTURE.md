@@ -38,34 +38,56 @@ data/ (local, gitignored)
 ### Bars
 
 Columns: `time, open, high, low, close, volume` (UTC). Index monotonic
-increasing. Local files under `data/` only — never commit paid caches.
+increasing. **Native timeframe is always 1m** (horizons counted in 1m bars).
+Symbol is a config parameter (research default `ES`); package code stays
+asset-agnostic. Local files under `data/` only — never commit paid caches.
 
 ### StateVar
 
 - Stable string `id`
 - `compute(bars) -> Series | DataFrame` aligned to bars index
 - Uses only information available at or before each \(t\) (incl. warmup NaNs)
+- Catalog still empty until **step 3**
 
 ### TargetSpec
 
 - Declares horizon set and outcome mapping \(y_{t,h}\)
-- Step 1: empty registry; concrete horizons = **step 2**
+- **Step 2 (current):** `ternary_displacement` on \(h \in \{3,10,30\}\)
+
+**Movement** = close-to-close **displacement** in causal ATR units (not path
+length; time is only the horizon container):
+
+\[
+z_h = \frac{\mathrm{close}_{t+h}-\mathrm{close}_t}{\mathrm{ATR}_t},\quad
+y_{t,h}=
+\begin{cases}
++1 & z_h > \tau \\
+-1 & z_h < -\tau \\
+0 & |z_h| \le \tau
+\end{cases}
+\]
+
+Default \(\tau = 0.15\), ATR Wilder period 14. Labels at the tail (no
+\(\mathrm{close}_{t+h}\)) and during ATR warmup are NaN.
+
+Path metrics (MFE/MAE) and “invalidation machine” ideas are **out of** this
+label; they may become later layers.
 
 ### Predictor
 
 - `fit(X, y)` / `predict_proba(X)`
 - Probability shape must match the active `TargetSpec`
-- Concrete backend (HGB, LightGBM, …) is not part of step 1
+- Concrete backend (HGB, LightGBM, …) deferred
 
 ### Eval
 
 - Time-ordered holdout (and later purge/embargo for overlapping labels)
-- Metrics land after targets exist
+- Metrics after state features exist
 
 ## Work order
 
-1. **Structure** (this scaffold) — layers + empty registries
-2. **Horizons** — fill `targets` registry / config
+1. **Structure** — layers + empty registries ✅
+2. **Horizons** — ternary displacement 3/10/30 ✅
 3. **Market constants** — fill `state` registry / config
 
 ## Explicitly out of scope (for now)
@@ -73,4 +95,5 @@ increasing. Local files under `data/` only — never commit paid caches.
 - Indicator / Pine pattern ports
 - Quanqora fill contracts, passports, live wiring
 - Training loops, SHAP, stop/TP backtests
+- Path-based labels / invalidation-time models
 - Committing secrets or market data dumps

@@ -42,9 +42,9 @@ def test_load_ohlcv_roundtrip(tmp_path: Path):
     )
 
 
-def test_registries_empty_in_step1():
+def test_state_registry_still_empty():
     assert list_state_ids() == []
-    assert list_target_ids() == []
+    assert "ternary_displacement" in list_target_ids()
 
 
 def test_build_state_matrix_empty_ids():
@@ -60,25 +60,29 @@ def test_time_holdout_cut():
         time_holdout_cut(100, 0.0)
 
 
-def test_default_config_empty_horizons_and_state():
+def test_default_config_horizons_without_state():
     root = Path(__file__).resolve().parents[1]
     cfg = load_config(root / "configs" / "default.yaml")
     status = describe_readiness(cfg)
-    assert status["horizons"] == []
+    assert status["horizons"] == [3, 10, 30]
+    assert status["target_id"] == "ternary_displacement"
     assert status["state_ids"] == []
     assert status["ready_for_train"] is False
+    assert cfg["timeframe"] == "1m"
+    assert cfg["symbol"] == "ES"
 
 
-def test_run_scaffold_without_train():
+def test_run_scaffold_with_target_no_state():
     cfg = {
-        "horizons": [],
+        "horizons": [3, 10, 30],
         "state_ids": [],
-        "target_id": None,
+        "target_id": "ternary_displacement",
         "holdout_frac": 0.2,
     }
-    bars = make_synthetic_ohlcv(n=50)
+    bars = make_synthetic_ohlcv(n=80, seed=9)
     out = run_scaffold(cfg, bars=bars)
     assert out["status"]["ready_for_train"] is False
-    assert out["holdout_cut"] == 40
+    assert out["holdout_cut"] == 64
     assert out["X"] is not None and out["X"].empty
-    assert out["y"] is None
+    assert out["y"] is not None
+    assert list(out["y"].columns) == ["y_h3", "y_h10", "y_h30"]

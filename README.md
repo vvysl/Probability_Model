@@ -30,15 +30,19 @@ See [ARCHITECTURE.md](ARCHITECTURE.md).
 |---------|------|
 | `pm.bars` | OHLCV load / schema |
 | `pm.state` | Continuous \(\mathbf{x}_t\) (registry empty until step 3) |
-| `pm.targets` | Horizons + labels (registry empty until step 2) |
+| `pm.targets` | Ternary displacement on 3/10/30 (1m bars) |
 | `pm.model` | `Predictor` protocol |
 | `pm.eval` | Time-ordered splits |
 | `pm.pipeline` | Wire layers from config |
 
+**Invariants:** native bars = **1m**; research default symbol = **ES**; code is
+asset-agnostic (symbol/timeframe via config). Movement = displacement in ATR
+units, not path length.
+
 ## Work order
 
-1. **Structure** — this scaffold (done / in progress)
-2. **Horizons** — define \(h\) and outcome shape
+1. **Structure** — layers + contracts ✅
+2. **Horizons** — ternary \(y_{t,h}\) on 3/10/30 ✅
 3. **Market constants** — catalog continuous state variables
 
 ## Setup
@@ -58,4 +62,5 @@ caches or API keys.
 
 ## Status
 
-Step 1: package skeleton + contracts. Horizons and state catalog next.
+Step 2 done: horizons + ternary displacement target. Next: market constants
+(state registry).
