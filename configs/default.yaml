@@ -8,11 +8,15 @@ data_path: null
 # Horizons in 1m bars
 horizons: [3, 10, 30]
 
-# Ternary displacement: sign of (close_{t+h}-close_t)/ATR_t vs flat_tau
+# Ternary displacement: z_h = (close_{t+h}-close_t)/ATR14 vs per-horizon tau
 target_id: ternary_displacement
 target:
   atr_period: 14
-  flat_tau: 0.15
+  # Realizable move thresholds (ATR14 units)
+  flat_tau:
+    3: 0.75
+    10: 1.25
+    30: 2.0
 
 # v1 state catalog (~30): A returns, B vol, C candle, D trend, E relative volume
 state_ids:

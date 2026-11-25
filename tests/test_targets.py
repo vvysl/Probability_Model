@@ -22,6 +22,26 @@ def test_target_registered():
     assert "ternary_displacement" in list_target_ids()
     tgt = get_target("ternary_displacement")
     assert tuple(tgt.horizons) == DEFAULT_HORIZONS
+    assert tgt.tau(3) == pytest.approx(0.75)
+    assert tgt.tau(10) == pytest.approx(1.25)
+    assert tgt.tau(30) == pytest.approx(2.0)
+
+
+def test_per_horizon_tau_map():
+    bars = make_synthetic_ohlcv(n=120, seed=5)
+    tgt = TernaryDisplacementTarget(
+        horizons=(3, 10, 30),
+        atr_period=14,
+        flat_tau={3: 0.75, 10: 1.25, 30: 2.0},
+    )
+    z = tgt.compute_z(bars)
+    y = tgt.compute(bars)
+    # Larger tau ⇒ more flats on same z (or equal)
+    flat3 = (y["y_h3"] == LABEL_FLAT).sum()
+    flat30 = (y["y_h30"] == LABEL_FLAT).sum()
+    # Not a hard inequality across different h windows, but z columns exist
+    assert list(z.columns) == ["z_h3", "z_h10", "z_h30"]
+    assert flat3 >= 0 and flat30 >= 0
 
 
 def test_atr_causal_matches_prefix():

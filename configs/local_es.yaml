@@ -8,7 +8,10 @@ horizons:
 target_id: ternary_displacement
 target:
   atr_period: 14
-  flat_tau: 0.15
+  flat_tau:
+    3: 0.75
+    10: 1.25
+    30: 2.0
 state_ids:
 - ret_atr_1
 - ret_atr_3

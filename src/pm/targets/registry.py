@@ -1,11 +1,11 @@
-"""Target registry — step 2: ternary displacement on 3/10/30."""
+"""Target registry — ternary displacement on 3/10/30 with per-h tau."""
 
 from __future__ import annotations
 
 from pm.targets.base import TargetSpec
 from pm.targets.ternary_displacement import (
     DEFAULT_ATR_PERIOD,
-    DEFAULT_FLAT_TAU,
+    DEFAULT_FLAT_TAU_BY_H,
     DEFAULT_HORIZONS,
     TernaryDisplacementTarget,
 )
@@ -17,7 +17,7 @@ def _register_defaults() -> None:
     tgt = TernaryDisplacementTarget(
         horizons=DEFAULT_HORIZONS,
         atr_period=DEFAULT_ATR_PERIOD,
-        flat_tau=DEFAULT_FLAT_TAU,
+        flat_tau=DEFAULT_FLAT_TAU_BY_H,
         target_id="ternary_displacement",
     )
     TARGET_REGISTRY[tgt.id] = tgt

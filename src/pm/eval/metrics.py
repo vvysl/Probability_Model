@@ -7,7 +7,7 @@ from typing import Any
 import numpy as np
 from sklearn.metrics import brier_score_loss, log_loss
 
-from pm.model.labels import PROBA_NAMES, TERNARY_CLASSES, encode_ternary
+from pm.model.labels import CLASS_FLAT, PROBA_NAMES, TERNARY_CLASSES, encode_ternary
 
 
 def ternary_metrics(y_true: np.ndarray, proba: np.ndarray) -> dict[str, Any]:
@@ -51,3 +51,53 @@ def ternary_metrics(y_true: np.ndarray, proba: np.ndarray) -> dict[str, Any]:
     pred = np.array(TERNARY_CLASSES)[np.argmax(proba, axis=1)]
     out["accuracy"] = float(np.mean(pred == y_true))
     return out
+
+
+def flat_micro_direction_metrics(
+    y_true: np.ndarray,
+    z: np.ndarray,
+    proba: np.ndarray,
+) -> dict[str, Any]:
+    """
+    When true label is flat (|z| < tau), score residual sign vs model tilt.
+
+    Model favors up if P(up) > P(down). Skip rows with z == 0.
+    + if sign(z) matches favor; − otherwise.
+    """
+    y_true = np.asarray(y_true)
+    z = np.asarray(z, dtype=float)
+    proba = np.asarray(proba, dtype=float)
+    if len(y_true) != len(z) or len(y_true) != len(proba):
+        raise ValueError("y_true, z, proba length mismatch")
+
+    flat = y_true == CLASS_FLAT
+    # proba columns: [down, flat, up] → indices 0 and 2
+    favor_up = proba[:, 2] > proba[:, 0]
+    favor_down = proba[:, 0] > proba[:, 2]
+    # tie P(up)==P(down) → skip
+    decisive = favor_up | favor_down
+    nonzero = z != 0
+    mask = flat & decisive & nonzero & np.isfinite(z)
+
+    n = int(mask.sum())
+    if n == 0:
+        return {
+            "n_flat_scored": 0,
+            "n_flat_total": int(flat.sum()),
+            "hit_rate": None,
+            "n_plus": 0,
+            "n_minus": 0,
+        }
+
+    sign_z = np.sign(z[mask])
+    favor_sign = np.where(favor_up[mask], 1.0, -1.0)
+    hit = sign_z == favor_sign
+    n_plus = int(hit.sum())
+    n_minus = int((~hit).sum())
+    return {
+        "n_flat_scored": n,
+        "n_flat_total": int(flat.sum()),
+        "hit_rate": float(n_plus / n),
+        "n_plus": n_plus,
+        "n_minus": n_minus,
+    }

@@ -77,8 +77,12 @@ y_{t,h}=
 \end{cases}
 \]
 
-Default \(\tau = 0.15\), ATR Wilder period 14. Labels at the tail (no
-\(\mathrm{close}_{t+h}\)) and during ATR warmup are NaN.
+Per-horizon realizable thresholds (ATR14): \(\tau_3=0.75\), \(\tau_{10}=1.25\),
+\(\tau_{30}=2.0\). Labels at the tail (no \(\mathrm{close}_{t+h}\)) and during
+ATR warmup are NaN.
+
+Eval extra (not a train label): on true-flat rows, score residual \(\mathrm{sign}(z)\)
+vs model tilt \(P(\mathrm{up})>P(\mathrm{down})\) → flat micro-direction hit-rate.
 
 Path metrics (MFE/MAE) and “invalidation machine” ideas are **out of** this
 label; they may become later layers.

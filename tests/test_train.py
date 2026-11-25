@@ -44,6 +44,8 @@ def test_hgb_fit_predict_proba_shape():
 
 
 def test_ternary_metrics_smoke():
+    from pm.eval.metrics import flat_micro_direction_metrics
+
     y = np.array([-1, 0, 1, 1, 0, -1])
     proba = np.array(
         [
@@ -59,6 +61,22 @@ def test_ternary_metrics_smoke():
     assert m["n"] == 6
     assert m["log_loss"] > 0
     assert "brier_mean" in m
+
+    # Flat rows: index 1 z>0 & favor flat-ish but up>down → +; index 4 z<0 & down>up → +
+    z = np.array([-1.0, 0.2, 1.0, 1.0, -0.1, -1.0])
+    proba_tilt = np.array(
+        [
+            [0.6, 0.3, 0.1],
+            [0.2, 0.3, 0.5],  # favor up, z>0 → +
+            [0.1, 0.2, 0.7],
+            [0.2, 0.2, 0.6],
+            [0.5, 0.3, 0.2],  # favor down, z<0 → +
+            [0.5, 0.3, 0.2],
+        ]
+    )
+    micro = flat_micro_direction_metrics(y, z, proba_tilt)
+    assert micro["n_flat_scored"] == 2
+    assert micro["hit_rate"] == pytest.approx(1.0)
 
 
 def test_purge_gap():

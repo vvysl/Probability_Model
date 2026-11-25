@@ -36,11 +36,16 @@ def main(argv: list[str] | None = None) -> None:
             "purge": result["purge"],
             "horizons": {
                 h: {
+                    "tau": result.get("flat_tau_by_h", {}).get(h),
                     "n_train": v["n_train"],
                     "n_holdout": v["n_holdout"],
                     "log_loss": v["metrics"]["log_loss"],
                     "brier_mean": v["metrics"]["brier_mean"],
                     "accuracy": v["metrics"]["accuracy"],
+                    "flat_frac_true": v["metrics"]["class_frac_true"]["flat"],
+                    "flat_micro_hit": (
+                        v["metrics"].get("flat_micro_direction") or {}
+                    ).get("hit_rate"),
                 }
                 for h, v in result["horizons"].items()
             },

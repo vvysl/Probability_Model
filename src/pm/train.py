@@ -15,13 +15,16 @@ import numpy as np
 import pandas as pd
 
 from pm.bars import load_ohlcv, normalize_ohlcv
-from pm.eval.metrics import ternary_metrics
+from pm.eval.metrics import flat_micro_direction_metrics, ternary_metrics
 from pm.eval.splits import time_holdout_indices
 from pm.model.hgb import DEFAULT_HGB_PARAMS, HgbTernaryPredictor
 from pm.pipeline import describe_readiness, load_config
 from pm.state.registry import build_state_matrix
 from pm.targets.registry import get_target
-from pm.targets.ternary_displacement import TernaryDisplacementTarget
+from pm.targets.ternary_displacement import (
+    DEFAULT_FLAT_TAU_BY_H,
+    TernaryDisplacementTarget,
+)
 
 
 def _resolve_target(cfg: dict[str, Any]) -> TernaryDisplacementTarget:
@@ -29,21 +32,24 @@ def _resolve_target(cfg: dict[str, Any]) -> TernaryDisplacementTarget:
     base = get_target(target_id)
     horizons = tuple(cfg.get("horizons") or list(base.horizons))
     tcfg = cfg.get("target") or {}
+    flat_tau = tcfg.get("flat_tau", DEFAULT_FLAT_TAU_BY_H)
     return TernaryDisplacementTarget(
         horizons=horizons,
         atr_period=int(tcfg.get("atr_period", 14)),
-        flat_tau=float(tcfg.get("flat_tau", 0.15)),
+        flat_tau=flat_tau,
         target_id=str(target_id),
     )
 
 
 def build_xy(
     bars: pd.DataFrame, cfg: dict[str, Any]
-) -> tuple[pd.DataFrame, pd.DataFrame]:
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, TernaryDisplacementTarget]:
     state_ids = list(cfg.get("state_ids") or [])
     X = build_state_matrix(bars, state_ids)
-    y = _resolve_target(cfg).compute(bars)
-    return X, y
+    target = _resolve_target(cfg)
+    y = target.compute(bars)
+    z = target.compute_z(bars)
+    return X, y, z, target
 
 
 def _aligned_mask(X: pd.DataFrame, y_col: pd.Series) -> np.ndarray:
@@ -53,10 +59,12 @@ def _aligned_mask(X: pd.DataFrame, y_col: pd.Series) -> np.ndarray:
 def train_horizon(
     X: pd.DataFrame,
     y_col: pd.Series,
+    z_col: pd.Series,
     *,
     holdout_frac: float,
     purge: int,
     hgb_params: dict[str, Any] | None = None,
+    tau: float | None = None,
 ) -> dict[str, Any]:
     """Fit one horizon; return model + holdout metrics + split info."""
     mask = _aligned_mask(X, y_col)
@@ -66,11 +74,11 @@ def train_horizon(
 
     Xv = X.to_numpy(dtype=float)[idx]
     yv = y_col.to_numpy(dtype=float)[idx].astype(int)
+    zv = z_col.to_numpy(dtype=float)[idx]
 
     train_rel, hold_rel, cut_rel = time_holdout_indices(
         len(idx), holdout_frac=holdout_frac, purge=purge
     )
-    # Map relative positions back to original bar indices for reporting
     train_idx = idx[train_rel]
     hold_idx = idx[hold_rel]
 
@@ -78,6 +86,11 @@ def train_horizon(
     model.fit(Xv[train_rel], yv[train_rel])
     proba = model.predict_proba(Xv[hold_rel])
     metrics = ternary_metrics(yv[hold_rel], proba)
+    metrics["flat_micro_direction"] = flat_micro_direction_metrics(
+        yv[hold_rel], zv[hold_rel], proba
+    )
+    if tau is not None:
+        metrics["flat_tau"] = float(tau)
 
     return {
         "model": model,
@@ -114,16 +127,14 @@ def run_train(
     else:
         bars = normalize_ohlcv(bars)
 
-    X, y = build_xy(bars, cfg)
+    X, y, z, target = build_xy(bars, cfg)
     horizons = [int(h) for h in (cfg.get("horizons") or [])]
     if not horizons:
         raise ValueError("config.horizons is empty")
     purge = int(cfg.get("purge", max(horizons)))
     holdout_frac = float(cfg.get("holdout_frac", 0.2))
     hgb_params = {**DEFAULT_HGB_PARAMS, **(cfg.get("model") or {})}
-    # Force balanced for v1 unless explicitly overridden
     hgb_params.setdefault("class_weight", "balanced")
-    # Strip non-sklearn keys if any
     backend = hgb_params.pop("backend", "hgb")
     if backend != "hgb":
         raise ValueError(
@@ -137,6 +148,7 @@ def run_train(
         "symbol": cfg.get("symbol"),
         "purge": purge,
         "holdout_frac": holdout_frac,
+        "flat_tau_by_h": {str(h): target.tau(h) for h in horizons},
         "horizons": {},
     }
 
@@ -146,14 +158,19 @@ def run_train(
 
     for h in horizons:
         col = f"y_h{h}"
+        zcol = f"z_h{h}"
         if col not in y.columns:
             raise KeyError(f"missing target column {col}")
+        if zcol not in z.columns:
+            raise KeyError(f"missing z column {zcol}")
         packed = train_horizon(
             X,
             y[col],
+            z[zcol],
             holdout_frac=holdout_frac,
             purge=purge,
             hgb_params=hgb_params,
+            tau=target.tau(h),
         )
         model = packed.pop("model")
         results["horizons"][str(h)] = packed
@@ -161,9 +178,8 @@ def run_train(
             joblib.dump(model, art / f"model_h{h}.joblib")
 
     if art:
-        meta = {k: v for k, v in results.items()}
         (art / "metrics.json").write_text(
-            json.dumps(meta, indent=2), encoding="utf-8"
+            json.dumps(results, indent=2), encoding="utf-8"
         )
 
     return results
