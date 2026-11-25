@@ -56,61 +56,57 @@ asset-agnostic. Local files under `data/` only — never commit paid caches.
 | C candle | `body_atr`, `upper_wick_atr`, `lower_wick_atr`, `range_atr`, `close_pos`, `dir_consist_15` | Structure in ATR; `close_pos=0.5` if range 0 |
 | D trend | `dist_ema_{10,30,60}`, `ema_slope_10` (lag 5), `ema_slope_60` (lag 15), `eff_30` | Slopes /ATR14; efficiency ∈ [0,1] |
 | E volume | `rvol_5/30`, `vol_z_60`, `vol_chg`, `vol_x_ret` | Relative only — no raw volume |
+| F alphabet wave-1 | `vwap_dist`, `session_range_pos`, `dist_session_extreme_atr`, `gap_atr`, `mins_in_session`, `mins_to_session_end`, `session_vol_frac`, `gk_rv_ratio`, `range_compression`, `vol_pct`, `ret_skew`, `ret_accel`, `sma_open_approach` | Quanqora Core A subset; Warsaw session canon; no Quanqora import |
 
-ATR denominators default to ATR(14) unless the feature *is* a vol scale/ratio.
+Default matrix = v1 + wave-1 (**43** ids). ATR denominators default to ATR(14)
+unless the feature *is* a vol scale/ratio.
 
 ### TargetSpec
 
-- Declares horizon set and outcome mapping \(y_{t,h}\)
-- **Step 2 (current):** `ternary_displacement` on \(h \in \{3,10,30\}\)
-
-**Movement** = close-to-close **displacement** in causal ATR units (not path
-length; time is only the horizon container):
+**Primary (current):** `atr_barrier_first` — continuous probabilistic system,
+not a trade strategy. On each bar \(t\), with \(n=30\), \(\tau=2\cdot\mathrm{ATR}_{14}\):
 
 \[
-z_h = \frac{\mathrm{close}_{t+h}-\mathrm{close}_t}{\mathrm{ATR}_t},\quad
-y_{t,h}=
-\begin{cases}
-+1 & z_h > \tau \\
--1 & z_h < -\tau \\
-0 & |z_h| \le \tau
-\end{cases}
+y_t \in \{\text{up first},\ \text{down first},\ \text{none}\}
 \]
 
-Per-horizon realizable thresholds (ATR14): \(\tau_3=0.75\), \(\tau_{10}=1.25\),
-\(\tau_{30}=2.0\). Labels at the tail (no \(\mathrm{close}_{t+h}\)) and during
-ATR warmup are NaN.
+Path on \((t+1..t+n)\): which barrier is touched **first**. Same-bar double
+hit → `none`. Model outputs
 
-Eval extra (not a train label): on true-flat rows, score residual \(\mathrm{sign}(z)\)
-vs model tilt \(P(\mathrm{up})>P(\mathrm{down})\) → flat micro-direction hit-rate.
+\[
+P(\text{up first}),\ P(\text{down first}),\ P(\text{none})
+\]
 
-Path metrics (MFE/MAE) and “invalidation machine” ideas are **out of** this
-label; they may become later layers.
+Comparing \(P(\text{up first})>P(\text{down first})\) is a thin consumption layer,
+not baked into training as a trade rule.
 
-### Predictor
+**Also registered:** `atr_barrier_touch` (independent hits); `ternary_displacement`
+(close-to-close legacy).
 
-- `fit(X, y)` / `predict_proba(X)` → ternary proba `(n, 3)` = `[down, flat, up]`
-- **One model per horizon** (`y_h3`, `y_h10`, `y_h30`)
-- **v1 backend:** `HistGradientBoostingClassifier` (`pm.model.hgb`), `class_weight=balanced`
-- **Later:** LightGBM on a server (optional extra; needs libomp on macOS)
-- Train: time holdout + `purge=max(h)` (`pm.train`); metrics log-loss / Brier / accuracy
+### Predictor (legacy checkpoint)
+
+- First-barrier: **one ternary HGB** → proba `[down_first, none, up_first]`
+- Backend: `HistGradientBoostingClassifier`, `class_weight=balanced`
+- Train: time holdout + `purge=n`; log-loss / Brier / first-side hit-rate
+
+This line is **frozen**. Next backend = **LightGBM on this Mac**; server is for
+order execution only.
 
 ### Eval
 
-- Time-ordered holdout (and later purge/embargo for overlapping labels)
-- Metrics after state features exist
+- Time-ordered holdout + purge/embargo for overlapping labels
 
 ## Work order
 
 1. **Structure** — layers + empty registries ✅
-2. **Horizons** — ternary displacement 3/10/30 ✅
-3. **Market constants** — v1 state catalog (~30) ✅
-4. **Train** — HGB per horizon ✅; LGBM on server later
+2. **Target** — first ATR barrier \(n=30,\tau=2\) ✅ (legacy)
+3. **Market constants** — v1 + alphabet wave-1 (43) ✅ (legacy)
+4. **Train** — ternary HGB for first-touch probs ✅ (legacy; edge ~coin)
+5. **Rebuild** — one horizon; three coupled models (price / position /
+   entry-exit); LightGBM local; non-obvious features — **next**
 
-## Explicitly out of scope (for now)
+## Explicitly out of scope
 
-- Indicator / Pine pattern ports
-- Quanqora fill contracts, passports, live wiring
-- Training loops, SHAP, stop/TP backtests
-- Path-based labels / invalidation-time models
+- Quanqora fill contracts, passports, live wiring (in this repo)
 - Committing secrets or market data dumps
+- Treating TV-top-1 indicator soup as the main feature bet

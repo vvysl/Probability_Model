@@ -10,7 +10,7 @@ import pytest
 from pm.bars import REQUIRED_COLUMNS, load_ohlcv, make_synthetic_ohlcv, normalize_ohlcv
 from pm.eval.splits import time_holdout_cut
 from pm.pipeline import describe_readiness, load_config, run_scaffold
-from pm.state.catalog import V1_STATE_IDS
+from pm.state.catalog import DEFAULT_STATE_IDS, V1_STATE_IDS
 from pm.state.registry import build_state_matrix, list_state_ids
 from pm.targets.registry import list_target_ids
 
@@ -44,8 +44,11 @@ def test_load_ohlcv_roundtrip(tmp_path: Path):
 
 
 def test_core_registries_populated():
-    assert set(V1_STATE_IDS).issubset(set(list_state_ids()))
+    assert set(DEFAULT_STATE_IDS).issubset(set(list_state_ids()))
     assert len(V1_STATE_IDS) == 30
+    assert len(DEFAULT_STATE_IDS) == 43
+    assert "atr_barrier_first" in list_target_ids()
+    assert "atr_barrier_touch" in list_target_ids()
     assert "ternary_displacement" in list_target_ids()
 
 
@@ -66,25 +69,26 @@ def test_default_config_ready_for_train():
     root = Path(__file__).resolve().parents[1]
     cfg = load_config(root / "configs" / "default.yaml")
     status = describe_readiness(cfg)
-    assert status["horizons"] == [3, 10, 30]
-    assert status["target_id"] == "ternary_displacement"
-    assert status["state_ids"] == list(V1_STATE_IDS)
+    assert status["horizons"] == [30]
+    assert status["target_id"] == "atr_barrier_first"
+    assert status["state_ids"] == list(DEFAULT_STATE_IDS)
     assert status["ready_for_train"] is True
     assert cfg["timeframe"] == "1m"
     assert cfg["symbol"] == "ES"
+    assert cfg["target"]["barrier_tau"] == 2.0
 
 
-def test_run_scaffold_with_v1_state():
+def test_run_scaffold_with_default_state():
     cfg = {
-        "horizons": [3, 10, 30],
-        "state_ids": list(V1_STATE_IDS),
-        "target_id": "ternary_displacement",
+        "horizons": [30],
+        "state_ids": list(DEFAULT_STATE_IDS),
+        "target_id": "atr_barrier_first",
         "holdout_frac": 0.2,
     }
     bars = make_synthetic_ohlcv(n=400, seed=9)
     out = run_scaffold(cfg, bars=bars)
     assert out["status"]["ready_for_train"] is True
     assert out["holdout_cut"] == 320
-    assert list(out["X"].columns) == list(V1_STATE_IDS)
+    assert list(out["X"].columns) == list(DEFAULT_STATE_IDS)
     assert out["y"] is not None
-    assert list(out["y"].columns) == ["y_h3", "y_h10", "y_h30"]
+    assert list(out["y"].columns) == ["first_h30"]

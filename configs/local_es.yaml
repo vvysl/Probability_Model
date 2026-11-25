@@ -2,16 +2,12 @@ symbol: ES
 timeframe: 1m
 data_path: data/ES_1m.csv
 horizons:
-- 3
-- 10
 - 30
-target_id: ternary_displacement
+target_id: atr_barrier_first
 target:
+  horizon: 30
   atr_period: 14
-  flat_tau:
-    3: 0.75
-    10: 1.25
-    30: 2.0
+  barrier_tau: 2.0
 state_ids:
 - ret_atr_1
 - ret_atr_3
@@ -43,6 +39,19 @@ state_ids:
 - vol_z_60
 - vol_chg
 - vol_x_ret
+- vwap_dist
+- session_range_pos
+- dist_session_extreme_atr
+- gap_atr
+- mins_in_session
+- mins_to_session_end
+- session_vol_frac
+- gk_rv_ratio
+- range_compression
+- vol_pct
+- ret_skew
+- ret_accel
+- sma_open_approach
 holdout_frac: 0.2
 purge: 30
 model:

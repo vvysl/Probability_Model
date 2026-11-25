@@ -1,8 +1,10 @@
-"""v1 continuous state catalog (~30 features, blocks A–E)."""
+"""Continuous state catalogs: v1 (A–E) + alphabet wave-1."""
 
 from __future__ import annotations
 
-# Ordered default feature set for configs / training.
+from pm.state.alphabet_wave1 import WAVE1_STATE_IDS
+
+# Ordered default feature set for configs / training (blocks A–E).
 V1_STATE_IDS: tuple[str, ...] = (
     # A — price movement (return / ATR14)
     "ret_atr_1",
@@ -42,3 +44,8 @@ V1_STATE_IDS: tuple[str, ...] = (
 )
 
 assert len(V1_STATE_IDS) == 30
+assert len(WAVE1_STATE_IDS) == 13
+
+# Default train matrix = v1 + alphabet wave-1 (Quanqora Core A subset).
+DEFAULT_STATE_IDS: tuple[str, ...] = V1_STATE_IDS + WAVE1_STATE_IDS
+assert len(DEFAULT_STATE_IDS) == 43

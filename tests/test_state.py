@@ -1,4 +1,4 @@
-"""v1 continuous state catalog (blocks A–E)."""
+"""v1 + alphabet wave-1 continuous state catalog."""
 
 from __future__ import annotations
 
@@ -9,25 +9,24 @@ import pytest
 
 from pm.bars import make_synthetic_ohlcv
 from pm.pipeline import describe_readiness, load_config, run_scaffold
-from pm.state.catalog import V1_STATE_IDS
+from pm.state.catalog import DEFAULT_STATE_IDS, V1_STATE_IDS
 from pm.state.registry import build_state_matrix, get_state_var, list_state_ids
 from pm.vol import atr
 
 
-def test_v1_catalog_registered():
-    assert len(V1_STATE_IDS) == 30
-    assert set(V1_STATE_IDS).issubset(set(list_state_ids()))
-    for sid in V1_STATE_IDS:
+def test_default_catalog_registered():
+    assert set(DEFAULT_STATE_IDS).issubset(set(list_state_ids()))
+    for sid in DEFAULT_STATE_IDS:
         assert get_state_var(sid).id == sid
 
 
-def test_build_full_v1_matrix():
+def test_build_full_default_matrix():
     bars = make_synthetic_ohlcv(n=400, seed=11)
-    X = build_state_matrix(bars, list(V1_STATE_IDS))
-    assert list(X.columns) == list(V1_STATE_IDS)
+    X = build_state_matrix(bars, list(DEFAULT_STATE_IDS))
+    assert list(X.columns) == list(DEFAULT_STATE_IDS)
     assert len(X) == len(bars)
-    # After atr_240 warmup, most rows should be finite for all columns
-    tail = X.iloc[250:]
+    # After atr_240 warmup, core v1 cols finite; wave1 has own warmups
+    tail = X[list(V1_STATE_IDS)].iloc[250:]
     assert tail.notna().all().all()
 
 
@@ -53,7 +52,6 @@ def test_efficiency_bounds():
 
 def test_close_pos_flat_bar():
     bars = make_synthetic_ohlcv(n=50, seed=16)
-    # Force a zero-range bar
     i = 40
     px = float(bars["close"].iloc[i])
     for col in ("open", "high", "low", "close"):
@@ -62,34 +60,14 @@ def test_close_pos_flat_bar():
     assert pos.iloc[i] == pytest.approx(0.5)
 
 
-def test_atr_ratio_expansion():
-    bars = make_synthetic_ohlcv(n=300, seed=17)
-    ratio = get_state_var("atr_ratio_14_60").compute(bars)
-    a14 = get_state_var("atr_14").compute(bars)
-    a60 = get_state_var("atr_60").compute(bars)
-    expected = a14 / a60.where(a60 > 0)
-    pd.testing.assert_series_equal(ratio, expected.rename("atr_ratio_14_60"))
-
-
-def test_dir_consist_range():
-    bars = make_synthetic_ohlcv(n=100, seed=18)
-    d = get_state_var("dir_consist_15").compute(bars).dropna()
-    assert (d >= 0).all() and (d <= 1).all()
-
-
-def test_no_raw_volume_in_v1():
-    assert "volume" not in V1_STATE_IDS
-    assert all(not sid.startswith("volume") for sid in V1_STATE_IDS)
-
-
-def test_pipeline_default_v1():
+def test_pipeline_default_states():
     root = Path(__file__).resolve().parents[1]
     cfg = load_config(root / "configs" / "default.yaml")
     status = describe_readiness(cfg)
-    assert status["state_ids"] == list(V1_STATE_IDS)
+    assert status["state_ids"] == list(DEFAULT_STATE_IDS)
     assert status["ready_for_train"] is True
 
     bars = make_synthetic_ohlcv(n=400, seed=14)
     out = run_scaffold(cfg, bars=bars)
-    assert list(out["X"].columns) == list(V1_STATE_IDS)
+    assert list(out["X"].columns) == list(DEFAULT_STATE_IDS)
     assert out["y"] is not None

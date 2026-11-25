@@ -34,7 +34,7 @@ def describe_readiness(cfg: dict[str, Any]) -> dict[str, Any]:
         "registered_states": list_state_ids(),
         "registered_targets": list_target_ids(),
         "ready_for_train": bool(horizons) and bool(state_ids) and bool(target_id),
-        "note": "v1 ready: state + targets + HGB train (lgbm later/server).",
+        "note": "ATR barrier first P(up/down/none) + state; lgbm later/server.",
     }
 
 

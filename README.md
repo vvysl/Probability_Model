@@ -29,22 +29,30 @@ See [ARCHITECTURE.md](ARCHITECTURE.md).
 | Package | Role |
 |---------|------|
 | `pm.bars` | OHLCV load / schema |
-| `pm.state` | Continuous \(\mathbf{x}_t\) — v1 catalog (~30, A–E) |
-| `pm.targets` | Ternary displacement on 3/10/30 (1m bars) |
-| `pm.model` | HGB ternary predictor (LGBM later/server) |
+| `pm.state` | Continuous \(\mathbf{x}_t\) (legacy v1 / alphabet — redesign next) |
+| `pm.targets` | Legacy ATR barrier / first-touch (redesign next) |
+| `pm.model` | Legacy HGB; next = LightGBM locally |
 | `pm.eval` | Time splits + purge + metrics |
-| `pm.train` | One model per horizon |
+| `pm.train` | Legacy per-horizon loop |
 | `pm.pipeline` | Wire layers from config |
 
 **Invariants:** native bars = **1m**; research default symbol = **ES**; code is
-asset-agnostic (symbol/timeframe via config). Movement = displacement in ATR
-units, not path length.
+asset-agnostic. Server is for **order execution only** — training runs on this Mac.
 
-## Work order
+## Checkpoint (closed)
 
-1. **Structure** — layers + contracts ✅
-2. **Horizons** — ternary \(y_{t,h}\) on 3/10/30 ✅
-3. **Market constants** — v1 state catalog ✅
+Today’s HGB line (ternary displacement → alphabet wave-1 → ATR barrier /
+first-touch) is **archived as experience**. Side edge stayed ~coin; stacking
+TV-style obvious features is not the path forward.
+
+## Next (rebuild)
+
+1. One horizon (not multi-h).
+2. LightGBM locally (`lightgbm` was deferred — install here).
+3. Three coupled models that share state: **price**, **position management**,
+   **entries/exits**.
+4. Features: real structure (e.g. Bollinger-class and other non-obvious), not
+   RSI / MA / MI soup as the main bet.
 
 ## Setup
 
@@ -67,5 +75,6 @@ Databento/Quanqora → CSV; do not commit caches or API keys.
 
 ## Status
 
-HGB train loop ready (one model / horizon, balanced classes, purge=30).
-Point `data_path` at ES 1m and run `python -m pm train`. LightGBM later on server.
+**Checkpoint frozen.** Legacy train still works via
+`python -m pm train --config configs/local_es.yaml` for reference only.
+Rebuild starts next session.

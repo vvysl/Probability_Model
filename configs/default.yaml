@@ -5,20 +5,18 @@ symbol: ES
 timeframe: "1m"
 data_path: null
 
-# Horizons in 1m bars
-horizons: [3, 10, 30]
+# Fixed horizon for ATR barrier touch probabilities (1m bars)
+horizons: [30]
 
-# Ternary displacement: z_h = (close_{t+h}-close_t)/ATR14 vs per-horizon tau
-target_id: ternary_displacement
+# Primary: first barrier within n — P(up first) / P(down first) / P(none)
+# Path high/low; same-bar double hit → none. Not a trade strategy.
+target_id: atr_barrier_first
 target:
+  horizon: 30
   atr_period: 14
-  # Realizable move thresholds (ATR14 units)
-  flat_tau:
-    3: 0.75
-    10: 1.25
-    30: 2.0
+  barrier_tau: 2.0
 
-# v1 state catalog (~30): A returns, B vol, C candle, D trend, E relative volume
+# Default state = v1 (A–E, 30) + alphabet wave-1 (13) = 43
 state_ids:
   # A — price movement / ATR14
   - ret_atr_1
@@ -55,6 +53,20 @@ state_ids:
   - vol_z_60
   - vol_chg
   - vol_x_ret
+  # F — alphabet wave-1 (Quanqora Core A subset; Warsaw session canon)
+  - vwap_dist
+  - session_range_pos
+  - dist_session_extreme_atr
+  - gap_atr
+  - mins_in_session
+  - mins_to_session_end
+  - session_vol_frac
+  - gk_rv_ratio
+  - range_compression
+  - vol_pct
+  - ret_skew
+  - ret_accel
+  - sma_open_approach
 
 holdout_frac: 0.2
 # Drop train rows within this many bars of the holdout edge (label overlap).
