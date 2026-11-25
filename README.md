@@ -57,6 +57,9 @@ pytest
 python -m pm train --config configs/default.yaml
 ```
 
+Interactive train loop: [`notebooks/train.ipynb`](notebooks/train.ipynb)
+(uses `data/ES_1m.csv` when present, else synthetic bars).
+
 Requires `data_path` in config pointing at a local 1m OHLCV CSV
 (`time,open,high,low,close,volume`).
 
